@@ -1,0 +1,13 @@
+.tools/
+bin/
+obj/
+publish/
+publish-v*/
+artifacts/
+settings.json
+settings.json.tmp
+*.zip
+BlueSpectrum-Windows-x64/
+BlueSpectrum-SH-E70-v*-Windows-x64*/
+/SHA256SUMS*.txt
+!/SHA256SUMS-v1.7.txt
