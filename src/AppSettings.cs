@@ -17,7 +17,7 @@ public sealed class AppSettings
     public string? DeviceId { get; set; }
     public string? RenderGpuId { get; set; }
     public double Width { get; set; } = 800;
-    public double Height { get; set; } = 170;
+    public double Height { get; set; } = 134;
     public double Left { get; set; } = double.NaN;
     public double Top { get; set; } = double.NaN;
 
@@ -51,17 +51,18 @@ public sealed class AppSettings
                 if (s.AttackMs == 20 && s.ReleaseMs == 180) { s.AttackMs = 10; s.ReleaseMs = 240; }
                 s.DisplayProfileVersion = 5;
             }
+            if (s.DisplayProfileVersion < 6) { if (s.Height == 170) s.Height = 134; s.DisplayProfileVersion = 6; }
             s.Validate(); return s;
         }
         catch { return new(); }
     }
     public void Validate()
     {
-        DisplayProfileVersion = 5;
+        DisplayProfileVersion = 6;
         GainDb = Clamp(GainDb, -24, 30, 6); Brightness = Clamp(Brightness, .15, 1, .85);
         Glow = Clamp(Glow, 0, 1, .6); AttackMs = Clamp(AttackMs, 10, 150, 10);
         ReleaseMs = Clamp(ReleaseMs, 80, 900, 240);
-        Width = Clamp(Width, 720, 3000, 800); Height = Clamp(Height, 160, 1800, 170);
+        Width = Clamp(Width, 720, 3000, 800); Height = Clamp(Height, 130, 1800, 134);
         if (Fps != 30) Fps = 60;
         if (string.IsNullOrWhiteSpace(RenderGpuId)) RenderGpuId = null;
     }

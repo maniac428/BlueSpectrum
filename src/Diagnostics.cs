@@ -29,6 +29,7 @@ internal static class Diagnostics
             else if (args[0] == "--ui-test") UiTest(output);
             else if (args[0] == "--gpu-test") GpuTest(output);
             else if (args[0] == "--motion-test") MotionTest(output);
+            else if (args[0] == "--frame-test") FramePerformanceTest.Run(output, args.Length > 2 ? int.Parse(args[2]) : 60);
             else if (args[0] == "--loopback-test") Write(output, LiveLoopbackTests.Run(args.Length > 2 ? args[2] : null));
             else if (args[0] == "--render")
             {
@@ -192,7 +193,16 @@ internal static class Diagnostics
         for (int band = 0; band < 8; band++)
             if (Math.Abs(balanced.DisplayLevel(0, band) - balanced.DisplayLevel(1, band)) > 1e-12)
                 throw new InvalidOperationException("Identical stereo audio produced different bar movement.");
-        Write(output, new { Passed = true, FirstRise = firstRise, FirstFall = firstFall, SilenceAfter80Frames = settled,
+        double MotionAt(int fps)
+        {
+            var candidate = new SpectrumSurface { Settings = settings };
+            for (int i = 0; i < fps; i++) candidate.Update(signal, signal, 1.0 / fps, true, -12, -12);
+            for (int i = 0; i < fps / 2; i++) candidate.Update(silence, silence, 1.0 / fps, false);
+            return candidate.DisplayLevel(0, 3);
+        }
+        double fpsError = Math.Abs(MotionAt(30) - MotionAt(60));
+        if (fpsError > 1e-10) throw new InvalidOperationException("Motion time depends on display FPS.");
+        Write(output, new { Passed = true, FirstRise = firstRise, FirstFall = firstFall, SilenceAfter80Frames = settled, FrameRateMotionError = fpsError,
             Checks = new[] { "Fast rise on first frame", "Slower downward tail", "Silence returns to baseline", "Left-only stays left", "Equal channels move equally" },
             Scope = "Synthetic UI-level envelope test; original SH-8057 timing was not instrument-measured." });
     }

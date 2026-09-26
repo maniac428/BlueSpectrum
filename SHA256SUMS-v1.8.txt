@@ -1,1 +1,1 @@
-fd39a856bd384aad69daba7d4d434767ba05090efe8ae160743b59f548216748  BlueSpectrum-SH-8057-v1.8-Windows-x64.zip
+cdaaa28a93d49e079f932b9bcbb4fbb3792515f21241b6f2979ea75dc35568d1  BlueSpectrum-SH-8057-v1.8-Windows-x64.zip

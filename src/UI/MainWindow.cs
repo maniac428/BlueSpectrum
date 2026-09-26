@@ -15,7 +15,7 @@ public sealed class MainWindow : Window
     private readonly AppSettings settings;
     private readonly AudioCaptureService? capture;
     private readonly SpectrumPipeline? pipeline;
-    private readonly DispatcherTimer timer;
+    private readonly FrameClock timer;
     private readonly TextBlock status, format;
     private readonly Grid header, footer, layout;
     private readonly Button pinButton;
@@ -33,7 +33,7 @@ public sealed class MainWindow : Window
     {
         settings = initialSettings ?? AppSettings.Load(); settings.Validate(); persistSettings = startAudio;
         Title = "Blue Spectrum · SH-8057 FL";
-        Width = settings.Width; Height = settings.Height; MinWidth = 720; MinHeight = 160;
+        Width = settings.Width; Height = settings.Height; MinWidth = 720; MinHeight = 130;
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.CanResize;
         WindowChrome.SetWindowChrome(this, new WindowChrome { CaptionHeight = 0, ResizeBorderThickness = new Thickness(6), GlassFrameThickness = new Thickness(0), CornerRadius = new CornerRadius(0), UseAeroCaptionButtons = false });
         BlackWindowFrame.Attach(this);
@@ -106,13 +106,13 @@ public sealed class MainWindow : Window
             Loaded += (_, _) => capture.Start(settings.DeviceId);
             SystemEvents.PowerModeChanged += OnPowerModeChanged;
         }
-        timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromSeconds(1.0 / settings.Fps) };
+        timer = new FrameClock(Dispatcher) { Interval = TimeSpan.FromSeconds(1.0 / settings.Fps) };
         timer.Tick += Tick;
         if (startAudio) timer.Start();
         StateChanged += (_, _) => timer.Interval = WindowState == WindowState.Minimized ? TimeSpan.FromMilliseconds(300) : TimeSpan.FromSeconds(1.0 / settings.Fps);
         Closed += (_, _) =>
         {
-            closed = true; timer.Stop(); SystemEvents.PowerModeChanged -= OnPowerModeChanged; capture?.Dispose(); pipeline?.Dispose(); Surface.ReleaseGpu();
+            closed = true; timer.Dispose(); SystemEvents.PowerModeChanged -= OnPowerModeChanged; capture?.Dispose(); pipeline?.Dispose(); Surface.ReleaseGpu();
             if (startAudio)
             {
                 var r = fullScreen ? savedBounds : WindowState == WindowState.Normal ? new Rect(Left, Top, ActualWidth, ActualHeight) : RestoreBounds;

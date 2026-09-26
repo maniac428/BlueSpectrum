@@ -20,5 +20,5 @@ if ($Publish) {
     & $taskDotnet publish BlueSpectrum.csproj -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -o publish
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
     Copy-Item -LiteralPath README.md,THIRD-PARTY-NOTICES.md -Destination publish
-    Copy-Item -LiteralPath licenses,docs -Destination publish -Recurse -Force
+    Copy-Item -LiteralPath licenses,docs,assets -Destination publish -Recurse -Force
 }

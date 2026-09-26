@@ -11,9 +11,9 @@ namespace BlueSpectrum.UI;
 public sealed class SpectrumSurface : Grid
 {
     private const int Steps = 26;
-    private const double PanelWidth = 354, PanelHeight = 148, PanelGap = 0, PlotTop = 19, PlotHeight = 100;
-    private const double SegmentHeight = 2.25;
-    private static readonly string[] Frequencies = ["63Hz", "160Hz", "400Hz", "1kHz", "2.5kHz", "6.3kHz", "16kHz", "FULL RANGE"];
+    private const double PanelWidth = 354, PanelHeight = 115, PanelGap = 0, PlotTop = 24, PlotHeight = 60;
+    private const double SegmentHeight = 1.3;
+    private static readonly string[] Frequencies = ["63Hz", "160Hz", "400Hz", "1kHz", "2.5kHz", "6.3kHz", "16kHz", "full range"];
     private readonly double[][] levels = [new double[8], new double[8]];
     private readonly double[][] peaks = [new double[8], new double[8]];
     private readonly double[][] holds = [new double[8], new double[8]];
@@ -22,8 +22,8 @@ public sealed class SpectrumSurface : Grid
     private DrawingGroup? face;
     private readonly DrawingGroup[,] activeSegments = new DrawingGroup[8, Steps];
     private Brush lit = Brushes.LightBlue, hotCore = Brushes.White, halo = Brushes.Blue, outerHalo = Brushes.Blue;
-    private static readonly Brush Inactive = Brush("#02080D"), MarkerHalo = ColorBrush(70, 35, 125, 245), MarkerCore = ColorBrush(238, 155, 232, 255), Printed = Brush("#909DA5"), Dormant = Brush("#52636B"), ScaleInk = Brush("#A0CFE8");
-    private static readonly Brush RedCore = Brush("#D7645C"), RedHalo = Brush("#28100F");
+    private static readonly Brush Inactive = Brush("#02080D"), MarkerHalo = ColorBrush(70, 35, 125, 245), MarkerCore = ColorBrush(238, 155, 232, 255), Printed = Brush("#909DA5");
+    private static readonly Brush TickInk = Brush("#909DA5");
     private double lastBrightness = -1, lastGlow = -1;
     private GpuSpectrumHost? gpuHost;
     private byte[]? backgroundPixels;
@@ -207,10 +207,10 @@ public sealed class SpectrumSurface : Grid
             void AddSegment(int row, double opacity)
             {
                 double bx = BandX(band), bw = BandWidth(band), by = RowY(row);
-                AddCell(outerHalo, bx - 2.8, by - 1.5, bw + 5.6, SegmentHeight + 3, opacity);
-                AddCell(halo, bx - 1.2, by - .6, bw + 2.4, SegmentHeight + 1.2, opacity);
+                AddCell(outerHalo, bx - 2.8, by - .9, bw + 5.6, SegmentHeight + 1.8, opacity);
+                AddCell(halo, bx - 1.2, by - .35, bw + 2.4, SegmentHeight + .7, opacity);
                 AddCell(lit, bx, by, bw, SegmentHeight, opacity);
-                AddCell(hotCore, bx + .8, by + .48, bw - 1.6, 1.25, opacity);
+                AddCell(hotCore, bx + .8, by + .3, bw - 1.6, .65, opacity);
             }
             for (int row = 0; row < count; row++) AddSegment(row, 1);
             if (Settings.PeakHold && peak > count) AddSegment(peak - 1, .65);
@@ -222,8 +222,8 @@ public sealed class SpectrumSurface : Grid
     {
         if (face != null && Settings.Brightness == lastBrightness && Settings.Glow == lastGlow) return;
         lastBrightness = Settings.Brightness; lastGlow = Settings.Glow;
-        lit = ColorBrush((byte)(230 * lastBrightness), 70, 180, 252);
-        hotCore = ColorBrush((byte)(225 * lastBrightness), 190, 239, 255);
+        lit = ColorBrush((byte)(230 * lastBrightness), 100, 205, 240);
+        hotCore = ColorBrush((byte)(225 * lastBrightness), 215, 248, 252);
         halo = ColorBrush((byte)(130 * lastGlow * lastBrightness), 48, 152, 255);
         outerHalo = ColorBrush((byte)(42 * lastGlow * lastBrightness), 28, 99, 230);
         face = new DrawingGroup();
@@ -241,37 +241,34 @@ public sealed class SpectrumSurface : Grid
                     var segment = new DrawingGroup();
                     using (var s = segment.Open())
                     {
-                        s.DrawRectangle(outerHalo, null, new Rect(bx - 2.8, by - 1.5, bw + 5.6, SegmentHeight + 3));
-                        s.DrawRectangle(halo, null, new Rect(bx - 1.2, by - .6, bw + 2.4, SegmentHeight + 1.2));
+                        s.DrawRectangle(outerHalo, null, new Rect(bx - 2.8, by - .9, bw + 5.6, SegmentHeight + 1.8));
+                        s.DrawRectangle(halo, null, new Rect(bx - 1.2, by - .35, bw + 2.4, SegmentHeight + .7));
                         s.DrawRectangle(lit, null, new Rect(bx, by, bw, SegmentHeight));
-                        s.DrawRectangle(hotCore, null, new Rect(bx + .8, by + .48, bw - 1.6, 1.25));
+                        s.DrawRectangle(hotCore, null, new Rect(bx + .8, by + .3, bw - 1.6, .65));
                     }
                     segment.Freeze(); activeSegments[band, row] = segment;
                 }
-                Text(dc, Frequencies[band], bx + bw / 2, 132, band == 7 ? 7.8 : 8.4, Printed, center: true);
+                Text(dc, Frequencies[band], bx + bw / 2, 99, band == 7 ? 7.6 : 8.4, Printed, center: true);
             }
             string[] eqScale = ["+12", "+6", "0", "−6", "−12"];
             string[] spectrumScale = ["36", "27", "18", "9", "0"];
             for (int i = 0; i < 5; i++)
             {
                 double cy = PlotTop + 2.3 + i * (PlotHeight - 4.6) / 4;
-                Text(dc, eqScale[i], 26, cy - 5, 9.2, Dormant, right: true);
-                Text(dc, spectrumScale[i], 330, cy - 5.4, 10.1, ScaleInk);
+                Text(dc, eqScale[i], 26, cy - 5, 9.2, Printed, right: true);
+                Text(dc, spectrumScale[i], 330, cy - 5, 9.2, Printed);
             }
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < 13; i++)
             {
-                double cy = PlotTop + 2.3 + i * (PlotHeight - 4.6) / 8;
-                foreach (double tx in new[] { 32.0, 320.0 })
-                {
-                    dc.DrawRectangle(RedHalo, null, new Rect(tx - 1, cy - 1, 10, 3.2));
-                    dc.DrawRectangle(RedCore, null, new Rect(tx, cy, 8, 1.2));
-                }
+                double cy = PlotTop + 2.3 + i * (PlotHeight - 4.6) / 12;
+                double width = i % 3 == 0 ? 8 : 4;
+                dc.DrawRectangle(TickInk, null, new Rect(36 - width, cy, width, .7));
+                dc.DrawRectangle(TickInk, null, new Rect(320, cy, width, .7));
             }
             // SH-8057 has five always-visible reference dots in vertical columns between the eight bars.
             double[] markerCenters = new double[9];
-            for (int i = 1; i < 8; i++) markerCenters[i] = (BandCenter(i - 1) + BandCenter(i)) / 2;
-            markerCenters[0] = 2 * BandCenter(0) - markerCenters[1];
-            markerCenters[8] = 2 * BandCenter(7) - markerCenters[7];
+            markerCenters[0] = BandCenter(0) - (BandCenter(1) - BandCenter(0)) / 2;
+            for (int i = 0; i < 8; i++) markerCenters[i + 1] = 2 * BandCenter(i) - markerCenters[i];
             foreach (double mx in markerCenters)
             for (int i = 0; i < 5; i++)
             {
@@ -279,17 +276,19 @@ public sealed class SpectrumSurface : Grid
                 dc.DrawRectangle(MarkerHalo, null, new Rect(mx - 3.5, my - 1.4, 7, 4.6));
                 dc.DrawRectangle(MarkerCore, null, new Rect(mx - 2, my, 4, 1.8));
             }
-            Text(dc, "(dB)", 26, 1, 7.2, Printed, right: true);
-            Text(dc, "(dB)", 330, 1, 7.2, Printed);
-            Text(dc, "equalizer", 5, 135, 7.2, Printed);
-            Text(dc, "spectrum", 350, 135, 7.2, Printed, right: true);
+            Text(dc, "(dB)", 26, 13, 7.2, Printed, right: true);
+            Text(dc, "(dB)", 330, 13, 7.2, Printed);
+            Text(dc, "equalizer", 5, 99, 7.6, Printed);
+            Text(dc, "spectrum", 350, 99, 7.6, Printed, right: true);
+            dc.DrawRectangle(Printed, null, new Rect(50, 8, 98, .55));
+            dc.DrawRectangle(Printed, null, new Rect(207, 8, 103, .55));
         }
         face.Freeze();
     }
     private static double BandX(int band) => band == 7 ? 269 : 50 + band * 31.5;
     private static double BandWidth(int band) => band == 7 ? 26 : 13;
     private static double BandCenter(int band) => BandX(band) + BandWidth(band) / 2;
-    private static double RowY(int row) => PlotTop + PlotHeight - (row + 1) * (PlotHeight / Steps) + 1.5;
+    private static double RowY(int row) => PlotTop + 2.3 + (Steps - 1 - row) * (PlotHeight - 4.6) / (Steps - 1) - SegmentHeight / 2;
     private void Text(DrawingContext dc, string text, double x, double y, double size, Brush brush, bool right = false, bool center = false)
     {
         string key = text + ":" + size.ToString("F2", CultureInfo.InvariantCulture) + ":" + brush;

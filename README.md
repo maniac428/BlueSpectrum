@@ -8,7 +8,7 @@ Windows 11에서 PC 재생 소리에 반응하는 좌·우 청색 스펙트럼 �
 
 ## 다운로드
 
-[Windows x64 버전 다운로드](https://github.com/maniac428/BlueSpectrum/releases/latest/download/BlueSpectrum-SH-8057-v1.8-Windows-x64.zip) 후 압축을 풀고 `BlueSpectrum.exe`를 실행하세요. 별도 .NET 설치는 필요하지 않습니다. SHA-256은 [릴리스 페이지](https://github.com/maniac428/BlueSpectrum/releases/latest)에서 확인할 수 있습니다.
+공개 배포본은 [릴리스 페이지](https://github.com/maniac428/BlueSpectrum/releases/latest)에서 받으세요. ZIP을 풀고 `BlueSpectrum.exe`를 실행하면 됩니다. 별도 .NET 설치는 필요하지 않습니다.
 
 ## 주요 기능
 
