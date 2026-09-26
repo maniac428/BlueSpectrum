@@ -36,6 +36,7 @@ public sealed class SpectrumSurface : Grid
     internal bool UseGpuRendering { get; set; }
     internal Action<int>? NativeLeftClick { get; set; }
     internal GpuSpectrumHost? GpuHost => gpuHost;
+    internal double DisplayLevel(int channel, int band) => levels[channel][band];
     internal string RendererStatus => gpuFailure ?? gpuHost?.Status ?? (UseGpuRendering ? "GPU 연결 준비 중" : "기본 화면 표시");
     public AppSettings Settings { get; set; } = new();
     public bool IsCapturing { get; set; }
@@ -267,13 +268,16 @@ public sealed class SpectrumSurface : Grid
                 }
             }
             // SH-8057 has five always-visible reference dots in vertical columns between the eight bars.
-            double[] markers = [41, 72.25, 103.75, 135.25, 166.75, 198.25, 229.75, 263.75, 303.5];
-            foreach (double mx in markers)
+            double[] markerCenters = new double[9];
+            for (int i = 1; i < 8; i++) markerCenters[i] = (BandCenter(i - 1) + BandCenter(i)) / 2;
+            markerCenters[0] = 2 * BandCenter(0) - markerCenters[1];
+            markerCenters[8] = 2 * BandCenter(7) - markerCenters[7];
+            foreach (double mx in markerCenters)
             for (int i = 0; i < 5; i++)
             {
                 double my = PlotTop + 2.3 + i * (PlotHeight - 4.6) / 4;
-                dc.DrawRectangle(MarkerHalo, null, new Rect(mx - 1.5, my - 1.4, 7, 4.6));
-                dc.DrawRectangle(MarkerCore, null, new Rect(mx, my, 4, 1.8));
+                dc.DrawRectangle(MarkerHalo, null, new Rect(mx - 3.5, my - 1.4, 7, 4.6));
+                dc.DrawRectangle(MarkerCore, null, new Rect(mx - 2, my, 4, 1.8));
             }
             Text(dc, "(dB)", 26, 1, 7.2, Printed, right: true);
             Text(dc, "(dB)", 330, 1, 7.2, Printed);
@@ -284,6 +288,7 @@ public sealed class SpectrumSurface : Grid
     }
     private static double BandX(int band) => band == 7 ? 269 : 50 + band * 31.5;
     private static double BandWidth(int band) => band == 7 ? 26 : 13;
+    private static double BandCenter(int band) => BandX(band) + BandWidth(band) / 2;
     private static double RowY(int row) => PlotTop + PlotHeight - (row + 1) * (PlotHeight / Steps) + 1.5;
     private void Text(DrawingContext dc, string text, double x, double y, double size, Brush brush, bool right = false, bool center = false)
     {

@@ -7,6 +7,9 @@ namespace BlueSpectrum;
 
 public sealed class SpectrumPipeline : IDisposable
 {
+    // A 2048-frame window reacts in about 43 ms at 48 kHz; 512-frame hops refresh about every 11 ms.
+    // Keep the longer default FFT available for analytical callers that need finer low-frequency resolution.
+    private const int DisplayFftSize = 2048, DisplayHopSize = 512;
     private readonly record struct Packet(float[] Data, int Length, int SampleRate, long Timestamp, long Sequence, long Generation);
     private readonly Channel<Packet> queue = Channel.CreateBounded<Packet>(new BoundedChannelOptions(8) { SingleReader = true, FullMode = BoundedChannelFullMode.Wait });
     private readonly object sync = new();
@@ -85,7 +88,7 @@ public sealed class SpectrumPipeline : IDisposable
                     if (Volatile.Read(ref disposeStarted) != 0 || packet.Generation != Volatile.Read(ref generation)) continue;
                     if (analyzer is null || rate != packet.SampleRate || activeGeneration != packet.Generation)
                     {
-                        if (analyzer is null || rate != packet.SampleRate) analyzer = new(packet.SampleRate);
+                        if (analyzer is null || rate != packet.SampleRate) analyzer = new(packet.SampleRate, DisplayFftSize, DisplayHopSize);
                         else analyzer.Reset();
                         rate = packet.SampleRate;
                         activeGeneration = packet.Generation;

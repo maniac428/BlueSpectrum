@@ -31,16 +31,16 @@ public static class PipelineTests
         pipeline.Reset();
         Require(!pipeline.Snapshot(left, right, out leftFullRange, out rightFullRange) && left.All(value => value == -100) && leftFullRange == -100 && rightFullRange == -100,
             "Reset failed to clear the published band and full-range results immediately.");
-        pipeline.Submit(Tone(48000, 1000, 2048), 48000);
+        pipeline.Submit(Tone(48000, 1000, 1024), 48000);
         await Task.Delay(60);
         Require(!pipeline.Snapshot(left, right), "Old-generation data survived reset or a partial window was published.");
-        pipeline.Submit(new float[2048 * 2], 48000);
+        pipeline.Submit(new float[4096 * 2], 48000);
         await Until(() => pipeline.Snapshot(left, right));
         passed.Add("Generation reset rejects queued/in-flight data and retains new-session chunk boundaries");
 
         // A rate change must clear the old snapshot while the new format builds
         // its first complete analysis window.
-        pipeline.Submit(Tone(44100, 1000, 2048), 44100);
+        pipeline.Submit(Tone(44100, 1000, 1024), 44100);
         await Until(() => !pipeline.Snapshot(left, right, out leftFullRange, out rightFullRange));
         Require(left.All(value => value == -100) && leftFullRange == -100 && rightFullRange == -100, "Sample-rate change retained old band or full-range values.");
         pipeline.Submit(Tone(44100, 1000, 4096), 44100);

@@ -8,8 +8,8 @@ public sealed class AppSettings
     public double GainDb { get; set; } = 6;
     public double Brightness { get; set; } = .85;
     public double Glow { get; set; } = .6;
-    public double AttackMs { get; set; } = 20;
-    public double ReleaseMs { get; set; } = 180;
+    public double AttackMs { get; set; } = 10;
+    public double ReleaseMs { get; set; } = 240;
     public int DisplayProfileVersion { get; set; }
     public bool PeakHold { get; set; }
     public bool AlwaysOnTop { get; set; }
@@ -46,16 +46,21 @@ public sealed class AppSettings
                 if (s.Height == 220) s.Height = 170;
                 s.DisplayProfileVersion = 4;
             }
+            if (s.DisplayProfileVersion < 5)
+            {
+                if (s.AttackMs == 20 && s.ReleaseMs == 180) { s.AttackMs = 10; s.ReleaseMs = 240; }
+                s.DisplayProfileVersion = 5;
+            }
             s.Validate(); return s;
         }
         catch { return new(); }
     }
     public void Validate()
     {
-        DisplayProfileVersion = 4;
+        DisplayProfileVersion = 5;
         GainDb = Clamp(GainDb, -24, 30, 6); Brightness = Clamp(Brightness, .15, 1, .85);
-        Glow = Clamp(Glow, 0, 1, .6); AttackMs = Clamp(AttackMs, 10, 150, 20);
-        ReleaseMs = Clamp(ReleaseMs, 80, 900, 180);
+        Glow = Clamp(Glow, 0, 1, .6); AttackMs = Clamp(AttackMs, 10, 150, 10);
+        ReleaseMs = Clamp(ReleaseMs, 80, 900, 240);
         Width = Clamp(Width, 720, 3000, 800); Height = Clamp(Height, 160, 1800, 170);
         if (Fps != 30) Fps = 60;
         if (string.IsNullOrWhiteSpace(RenderGpuId)) RenderGpuId = null;

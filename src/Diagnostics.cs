@@ -28,6 +28,7 @@ internal static class Diagnostics
             else if (args[0] == "--device-test") DeviceTest(output);
             else if (args[0] == "--ui-test") UiTest(output);
             else if (args[0] == "--gpu-test") GpuTest(output);
+            else if (args[0] == "--motion-test") MotionTest(output);
             else if (args[0] == "--loopback-test") Write(output, LiveLoopbackTests.Run(args.Length > 2 ? args[2] : null));
             else if (args[0] == "--render")
             {
@@ -167,6 +168,35 @@ internal static class Diagnostics
         });
         app.Run(window);
     }
+    private static void MotionTest(string output)
+    {
+        var settings = new AppSettings();
+        var surface = new SpectrumSurface { Settings = settings };
+        var signal = Enumerable.Repeat(-12.0, 7).ToArray();
+        var silence = Enumerable.Repeat(-100.0, 7).ToArray();
+        const double frame = 1.0 / 60;
+        surface.Update(signal, silence, frame, true, -12, -100);
+        double firstRise = surface.DisplayLevel(0, 3), isolatedRight = surface.DisplayLevel(1, 3);
+        if (firstRise < .75 || isolatedRight != 0 || surface.DisplayLevel(0, 7) < .75 || surface.DisplayLevel(1, 7) != 0)
+            throw new InvalidOperationException("The first audio frame did not rise promptly and stay in the left channel.");
+        surface.Update(silence, silence, frame, false);
+        double firstFall = surface.DisplayLevel(0, 3);
+        if (firstFall >= firstRise || firstFall < firstRise * .85)
+            throw new InvalidOperationException("The falling bar did not retain a short visible tail.");
+        for (int i = 0; i < 80; i++) surface.Update(silence, silence, frame, false);
+        double settled = surface.DisplayLevel(0, 3);
+        if (settled > .01 || surface.DisplayLevel(1, 3) != 0)
+            throw new InvalidOperationException("Bars did not return to the dark baseline after silence.");
+        var balanced = new SpectrumSurface { Settings = settings };
+        for (int i = 0; i < 30; i++) balanced.Update(signal, signal, frame, true, -12, -12);
+        for (int band = 0; band < 8; band++)
+            if (Math.Abs(balanced.DisplayLevel(0, band) - balanced.DisplayLevel(1, band)) > 1e-12)
+                throw new InvalidOperationException("Identical stereo audio produced different bar movement.");
+        Write(output, new { Passed = true, FirstRise = firstRise, FirstFall = firstFall, SilenceAfter80Frames = settled,
+            Checks = new[] { "Fast rise on first frame", "Slower downward tail", "Silence returns to baseline", "Left-only stays left", "Equal channels move equally" },
+            Scope = "Synthetic UI-level envelope test; original SH-8057 timing was not instrument-measured." });
+    }
+
     private static void GpuTest(string output)
     {
         var app = new Application(); Program.ApplyTheme(app);
@@ -312,7 +342,7 @@ internal static class Diagnostics
         // Deterministic multi-tone fixtures pass through the real analyzer, never live mode.
         if (!silent)
         {
-            var analyzer = new StereoSpectrumAnalyzer(48000);
+            var analyzer = new StereoSpectrumAnalyzer(48000, 2048, 512);
             var samples = new float[48000 * 2];
             double[] a = [.1, .09, .055, .07, .026, .013, .006], b = [.035, .055, .09, .04, .055, .029, .014];
             for (int i = 0; i < 48000; i++)
