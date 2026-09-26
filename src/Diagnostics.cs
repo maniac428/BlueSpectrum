@@ -159,7 +159,7 @@ internal static class Diagnostics
                 var surface = window.Surface; var db = Enumerable.Repeat(-12.0, 7).ToArray();
                 for (int i = 0; i < 100; i++) surface.Update(db, db, 1 / 60.0, true);
                 for (int i = 0; i < 240; i++) surface.Update(db, db, 1 / 60.0, false);
-                window.Width = 720; window.Height = 210; window.UpdateLayout();
+                window.Width = 720; window.Height = 160; window.UpdateLayout();
                 Write(output, new { Passed = true, PositionChecks = positionChecks, MainBorderSuppressionAccepted = mainBorderSuppressed, OptionsBorderSuppressionAccepted = optionsBorderSuppressed, Checks = new[] { "WPF HWND initialization", "Focus mode active before first show and after Loaded", "Escape key routed event restores menu and footer", "Focus mode round trip", "Fullscreen round trip", "Five actual position button events and physical work-area bounds", "Position buttons preserve size and update saved position model", "Position button exits fullscreen", "Black context menu opens", "Black device dropdown opens and selects an item", "Invisible settings dialog with actual Apply event", "Settings gain value updated", "Live-to-silence render update", "Resize to minimum" }, Scope = "In-process WPF UI integration. Test windows and popups transparent and not activated. Native border fields report DWM setter acceptance. Physical keyboard/mouse/DPI-change not exercised." });
             }
             catch (Exception e) { Write(output, new { Passed = false, Error = e.ToString() }); }
@@ -308,7 +308,6 @@ internal static class Diagnostics
     {
         var app = new Application(); Program.ApplyTheme(app);
         var window = new MainWindow(false, new AppSettings { Width = width, Height = height });
-        window.RestoreView(); // Keep the synthetic-input caption visible in diagnostic previews.
         window.SetDiagnosticCaption(silent ? "검증용 무음 · 실시간 화면 아님" : "검증용 합성 입력 · 실시간 화면 아님");
         // Deterministic multi-tone fixtures pass through the real analyzer, never live mode.
         if (!silent)

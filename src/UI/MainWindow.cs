@@ -33,7 +33,7 @@ public sealed class MainWindow : Window
     {
         settings = initialSettings ?? AppSettings.Load(); settings.Validate(); persistSettings = startAudio;
         Title = "Blue Spectrum · SH-8057 FL";
-        Width = settings.Width; Height = settings.Height; MinWidth = 720; MinHeight = 210;
+        Width = settings.Width; Height = settings.Height; MinWidth = 720; MinHeight = 160;
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.CanResize;
         WindowChrome.SetWindowChrome(this, new WindowChrome { CaptionHeight = 0, ResizeBorderThickness = new Thickness(6), GlassFrameThickness = new Thickness(0), CornerRadius = new CornerRadius(0), UseAeroCaptionButtons = false });
         BlackWindowFrame.Attach(this);

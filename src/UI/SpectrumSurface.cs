@@ -11,7 +11,7 @@ namespace BlueSpectrum.UI;
 public sealed class SpectrumSurface : Grid
 {
     private const int Steps = 26;
-    private const double PanelWidth = 354, PanelHeight = 208, PanelGap = 200, PlotTop = 19, PlotHeight = 100;
+    private const double PanelWidth = 354, PanelHeight = 148, PanelGap = 0, PlotTop = 19, PlotHeight = 100;
     private const double SegmentHeight = 2.25;
     private static readonly string[] Frequencies = ["63Hz", "160Hz", "400Hz", "1kHz", "2.5kHz", "6.3kHz", "16kHz", "FULL RANGE"];
     private readonly double[][] levels = [new double[8], new double[8]];
@@ -24,7 +24,6 @@ public sealed class SpectrumSurface : Grid
     private Brush lit = Brushes.LightBlue, hotCore = Brushes.White, halo = Brushes.Blue, outerHalo = Brushes.Blue;
     private static readonly Brush Inactive = Brush("#02080D"), MarkerHalo = ColorBrush(70, 35, 125, 245), MarkerCore = ColorBrush(238, 155, 232, 255), Printed = Brush("#909DA5"), Dormant = Brush("#52636B"), ScaleInk = Brush("#A0CFE8");
     private static readonly Brush RedCore = Brush("#D7645C"), RedHalo = Brush("#28100F");
-    private static readonly Brush SliderRail = Brush("#22272A"), SliderTick = Brush("#4B5052"), SliderKnob = Brush("#73797B");
     private double lastBrightness = -1, lastGlow = -1;
     private GpuSpectrumHost? gpuHost;
     private byte[]? backgroundPixels;
@@ -104,7 +103,6 @@ public sealed class SpectrumSurface : Grid
             Text(dc, channel == 0 ? "left channel" : "right channel", 177, 3, 8.2, Printed, center: true);
             dc.Pop(); dc.Pop();
         }
-        DrawCenterCaption(dc, x, y, scale);
     }
 
     internal void ApplyGpuSelection()
@@ -182,7 +180,6 @@ public sealed class SpectrumSurface : Grid
                     Text(dc, channel == 0 ? "left channel" : "right channel", 177, 3, 8.2, Printed, center: true);
                     dc.Pop(); dc.Pop();
                 }
-                DrawCenterCaption(dc, x, y, scale);
                 dc.Pop();
             }
             var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
@@ -270,7 +267,7 @@ public sealed class SpectrumSurface : Grid
                 }
             }
             // SH-8057 has five always-visible reference dots in vertical columns between the eight bars.
-            double[] markers = [42, 75.5, 107, 138.5, 170, 201.5, 233, 268, 309];
+            double[] markers = [41, 72.25, 103.75, 135.25, 166.75, 198.25, 229.75, 263.75, 303.5];
             foreach (double mx in markers)
             for (int i = 0; i < 5; i++)
             {
@@ -282,34 +279,12 @@ public sealed class SpectrumSurface : Grid
             Text(dc, "(dB)", 330, 1, 7.2, Printed);
             Text(dc, "equalizer", 5, 135, 7.2, Printed);
             Text(dc, "spectrum", 350, 135, 7.2, Printed, right: true);
-            for (int band = 0; band < 7; band++)
-            {
-                double cx = BandX(band) + BandWidth(band) / 2;
-                dc.DrawRectangle(SliderRail, null, new Rect(cx - 2.3, 153, 4.6, 44));
-                for (int tick = 0; tick < 7; tick++)
-                {
-                    double ty = 154 + tick * 7;
-                    dc.DrawRectangle(SliderTick, null, new Rect(cx - 9, ty, 5, .7));
-                    dc.DrawRectangle(SliderTick, null, new Rect(cx + 4, ty, 5, .7));
-                }
-                dc.DrawRectangle(SliderKnob, null, new Rect(cx - 5.5, 172, 11, 6));
-            }
-            Text(dc, "UP", 11, 154, 7.2, Printed);
-            Text(dc, "DOWN", 11, 189, 7.2, Printed);
         }
         face.Freeze();
     }
-    private static double BandX(int band) => band == 7 ? 276 : 50 + band * 31.5;
-    private static double BandWidth(int band) => band == 7 ? 27.5 : 19.5;
+    private static double BandX(int band) => band == 7 ? 269 : 50 + band * 31.5;
+    private static double BandWidth(int band) => band == 7 ? 26 : 13;
     private static double RowY(int row) => PlotTop + PlotHeight - (row + 1) * (PlotHeight / Steps) + 1.5;
-    private void DrawCenterCaption(DrawingContext dc, double x, double y, double scale)
-    {
-        dc.PushTransform(new TranslateTransform(x + (PanelWidth + PanelGap / 2) * scale, y));
-        dc.PushTransform(new ScaleTransform(scale, scale));
-        Text(dc, "7-BAND", 0, 163, 9, Printed, center: true);
-        Text(dc, "GRAPHIC EQUALIZER", 0, 177, 8, Printed, center: true);
-        dc.Pop(); dc.Pop();
-    }
     private void Text(DrawingContext dc, string text, double x, double y, double size, Brush brush, bool right = false, bool center = false)
     {
         string key = text + ":" + size.ToString("F2", CultureInfo.InvariantCulture) + ":" + brush;
