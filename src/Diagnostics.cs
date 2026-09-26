@@ -31,8 +31,13 @@ internal static class Diagnostics
             else if (args[0] == "--loopback-test") Write(output, LiveLoopbackTests.Run(args.Length > 2 ? args[2] : null));
             else if (args[0] == "--render")
             {
-                int w = args.Length > 2 ? int.Parse(args[2]) : 800, h = args.Length > 3 ? int.Parse(args[3]) : 214;
+                int w = args.Length > 2 ? int.Parse(args[2]) : 800, h = args.Length > 3 ? int.Parse(args[3]) : 220;
                 Render(output, w, h);
+            }
+            else if (args[0] == "--render-silence")
+            {
+                int w = args.Length > 2 ? int.Parse(args[2]) : 800, h = args.Length > 3 ? int.Parse(args[3]) : 220;
+                Render(output, w, h, silent: true);
             }
             else if (args[0] == "--render-options") RenderControls(output, false);
             else if (args[0] == "--render-menu") RenderControls(output, true);
@@ -154,7 +159,7 @@ internal static class Diagnostics
                 var surface = window.Surface; var db = Enumerable.Repeat(-12.0, 7).ToArray();
                 for (int i = 0; i < 100; i++) surface.Update(db, db, 1 / 60.0, true);
                 for (int i = 0; i < 240; i++) surface.Update(db, db, 1 / 60.0, false);
-                window.Width = 720; window.Height = 200; window.UpdateLayout();
+                window.Width = 720; window.Height = 210; window.UpdateLayout();
                 Write(output, new { Passed = true, PositionChecks = positionChecks, MainBorderSuppressionAccepted = mainBorderSuppressed, OptionsBorderSuppressionAccepted = optionsBorderSuppressed, Checks = new[] { "WPF HWND initialization", "Focus mode active before first show and after Loaded", "Escape key routed event restores menu and footer", "Focus mode round trip", "Fullscreen round trip", "Five actual position button events and physical work-area bounds", "Position buttons preserve size and update saved position model", "Position button exits fullscreen", "Black context menu opens", "Black device dropdown opens and selects an item", "Invisible settings dialog with actual Apply event", "Settings gain value updated", "Live-to-silence render update", "Resize to minimum" }, Scope = "In-process WPF UI integration. Test windows and popups transparent and not activated. Native border fields report DWM setter acceptance. Physical keyboard/mouse/DPI-change not exercised." });
             }
             catch (Exception e) { Write(output, new { Passed = false, Error = e.ToString() }); }
@@ -165,7 +170,7 @@ internal static class Diagnostics
     private static void GpuTest(string output)
     {
         var app = new Application(); Program.ApplyTheme(app);
-        var settings = new AppSettings { Width = 800, Height = 200 };
+        var settings = new AppSettings { Width = 800, Height = 220 };
         var window = new MainWindow(false, settings, enableGpuRendering: true) { Opacity = 0, ShowActivated = false, ShowInTaskbar = false };
         app.DispatcherUnhandledException += (_, e) => { Write(output, new { Passed = false, Error = e.Exception.ToString() }); e.Handled = true; app.Shutdown(1); };
         window.Loaded += (_, _) => window.Dispatcher.BeginInvoke(() =>
@@ -196,7 +201,7 @@ internal static class Diagnostics
                         { if (x < frame.Width / 2) leftLit++; else rightLit++; }
                     }
                     if (leftLit < rightLit + 500) throw new InvalidOperationException("GPU output did not show independently lit left-channel bars");
-                    string preview = Path.Combine(Path.GetDirectoryName(output)!, "gpu-" + checks.Count + "-v1.7.png");
+                    string preview = Path.Combine(Path.GetDirectoryName(output)!, "gpu-" + checks.Count + "-v1.8.png");
                     var bitmap = BitmapSource.Create(frame.Width, frame.Height, 96, 96, PixelFormats.Bgra32, null, pixels, frame.Width * 4);
                     var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                     using (var stream = File.Create(preview)) encoder.Save(stream);
@@ -205,7 +210,7 @@ internal static class Diagnostics
                     var resized = window.Surface.CreateGpuFrame();
                     if (renderer.ReadPixels().Length != resized.Width * resized.Height * 4) throw new InvalidOperationException("GPU resized readback size mismatch");
                     checks.Add(new { Requested = adapter, Actual = renderer.ActiveAdapter, renderer.ActiveAdapterLuid, renderer.RenderedFrameCount, LeftLitPixels = leftLit, RightLitPixels = rightLit, ResizePassed = true, Preview = Path.GetFileName(preview) });
-                    window.Width = 800; window.Height = 200; window.UpdateLayout();
+                    window.Width = 800; window.Height = 220; window.UpdateLayout();
                 }
                 settings.RenderGpuId = "missing-gpu-for-diagnostic";
                 window.Surface.ApplyGpuSelection(); window.UpdateLayout();
@@ -299,24 +304,27 @@ internal static class Diagnostics
         capture.Stop(); Write(output, report);
     }
 
-    private static void Render(string output, int width, int height)
+    private static void Render(string output, int width, int height, bool silent = false)
     {
         var app = new Application(); Program.ApplyTheme(app);
         var window = new MainWindow(false, new AppSettings { Width = width, Height = height });
         window.RestoreView(); // Keep the synthetic-input caption visible in diagnostic previews.
-        window.SetDiagnosticCaption("검증용 합성 입력 · 실시간 화면 아님");
+        window.SetDiagnosticCaption(silent ? "검증용 무음 · 실시간 화면 아님" : "검증용 합성 입력 · 실시간 화면 아님");
         // Deterministic multi-tone fixtures pass through the real analyzer, never live mode.
-        var analyzer = new StereoSpectrumAnalyzer(48000);
-        var samples = new float[48000 * 2];
-        double[] a = [.1, .09, .055, .07, .026, .013, .006], b = [.035, .055, .09, .04, .055, .029, .014];
-        for (int i = 0; i < 48000; i++)
-            for (int k = 0; k < 7; k++)
-            {
-                var sin = Math.Sin(2 * Math.PI * StereoSpectrumAnalyzer.Centers[k] * i / 48000);
-                samples[2 * i] += (float)(a[k] * sin); samples[2 * i + 1] += (float)(b[k] * sin);
-            }
-        analyzer.AddFrames(samples);
-        for (int i = 0; i < 100; i++) window.Surface.Update(analyzer.LeftDb, analyzer.RightDb, 1 / 60.0, true, analyzer.LeftFullRangeDb, analyzer.RightFullRangeDb);
+        if (!silent)
+        {
+            var analyzer = new StereoSpectrumAnalyzer(48000);
+            var samples = new float[48000 * 2];
+            double[] a = [.1, .09, .055, .07, .026, .013, .006], b = [.035, .055, .09, .04, .055, .029, .014];
+            for (int i = 0; i < 48000; i++)
+                for (int k = 0; k < 7; k++)
+                {
+                    var sin = Math.Sin(2 * Math.PI * StereoSpectrumAnalyzer.Centers[k] * i / 48000);
+                    samples[2 * i] += (float)(a[k] * sin); samples[2 * i + 1] += (float)(b[k] * sin);
+                }
+            analyzer.AddFrames(samples);
+            for (int i = 0; i < 100; i++) window.Surface.Update(analyzer.LeftDb, analyzer.RightDb, 1 / 60.0, true, analyzer.LeftFullRangeDb, analyzer.RightFullRangeDb);
+        }
         var content = (FrameworkElement)window.Content;
         RenderElement(output, content, width, height);
         window.Close(); app.Shutdown();

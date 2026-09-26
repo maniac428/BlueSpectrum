@@ -11,3 +11,4 @@ BlueSpectrum-Windows-x64/
 BlueSpectrum-SH-E70-v*-Windows-x64*/
 /SHA256SUMS*.txt
 !/SHA256SUMS-v1.7.txt
+!/SHA256SUMS-v1.8.txt

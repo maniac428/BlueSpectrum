@@ -8,15 +8,16 @@ public sealed class AppSettings
     public double GainDb { get; set; } = 6;
     public double Brightness { get; set; } = .85;
     public double Glow { get; set; } = .6;
-    public double AttackMs { get; set; } = 35;
-    public double ReleaseMs { get; set; } = 230;
+    public double AttackMs { get; set; } = 20;
+    public double ReleaseMs { get; set; } = 180;
+    public int DisplayProfileVersion { get; set; }
     public bool PeakHold { get; set; }
     public bool AlwaysOnTop { get; set; }
     public int Fps { get; set; } = 60;
     public string? DeviceId { get; set; }
     public string? RenderGpuId { get; set; }
     public double Width { get; set; } = 800;
-    public double Height { get; set; } = 214;
+    public double Height { get; set; } = 220;
     public double Left { get; set; } = double.NaN;
     public double Top { get; set; } = double.NaN;
 
@@ -24,15 +25,33 @@ public sealed class AppSettings
     public static string SettingsPath => Path.Combine(AppContext.BaseDirectory, "settings.json");
     public static AppSettings Load()
     {
-        try { var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath), new JsonSerializerOptions { NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals }); s?.Validate(); return s ?? new(); }
+        try
+        {
+            var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath), new JsonSerializerOptions { NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals });
+            if (s == null) return new();
+            if (s.DisplayProfileVersion < 2)
+            {
+                // Keep personal motion/window choices; migrate only the previous stock values.
+                if (s.AttackMs == 35 && s.ReleaseMs == 230) { s.AttackMs = 20; s.ReleaseMs = 180; }
+                if (s.Height == 214) s.Height = 170;
+                s.DisplayProfileVersion = 2;
+            }
+            if (s.DisplayProfileVersion < 3)
+            {
+                if (s.Height == 170) s.Height = 220;
+                s.DisplayProfileVersion = 3;
+            }
+            s.Validate(); return s;
+        }
         catch { return new(); }
     }
     public void Validate()
     {
+        DisplayProfileVersion = 3;
         GainDb = Clamp(GainDb, -24, 30, 6); Brightness = Clamp(Brightness, .15, 1, .85);
-        Glow = Clamp(Glow, 0, 1, .6); AttackMs = Clamp(AttackMs, 10, 150, 35);
-        ReleaseMs = Clamp(ReleaseMs, 80, 900, 230);
-        Width = Clamp(Width, 720, 3000, 800); Height = Clamp(Height, 200, 1800, 214);
+        Glow = Clamp(Glow, 0, 1, .6); AttackMs = Clamp(AttackMs, 10, 150, 20);
+        ReleaseMs = Clamp(ReleaseMs, 80, 900, 180);
+        Width = Clamp(Width, 720, 3000, 800); Height = Clamp(Height, 210, 1800, 220);
         if (Fps != 30) Fps = 60;
         if (string.IsNullOrWhiteSpace(RenderGpuId)) RenderGpuId = null;
     }

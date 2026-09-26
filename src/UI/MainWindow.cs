@@ -32,8 +32,8 @@ public sealed class MainWindow : Window
     public MainWindow(bool startAudio = true, AppSettings? initialSettings = null, bool enableGpuRendering = false)
     {
         settings = initialSettings ?? AppSettings.Load(); settings.Validate(); persistSettings = startAudio;
-        Title = "Blue Spectrum · SH-E70 FL";
-        Width = settings.Width; Height = settings.Height; MinWidth = 720; MinHeight = 200;
+        Title = "Blue Spectrum · SH-8057 FL";
+        Width = settings.Width; Height = settings.Height; MinWidth = 720; MinHeight = 210;
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.CanResize;
         WindowChrome.SetWindowChrome(this, new WindowChrome { CaptionHeight = 0, ResizeBorderThickness = new Thickness(6), GlassFrameThickness = new Thickness(0), CornerRadius = new CornerRadius(0), UseAeroCaptionButtons = false });
         BlackWindowFrame.Attach(this);
@@ -54,7 +54,7 @@ public sealed class MainWindow : Window
 
         header = new Grid { Background = Brushes.Black };
         header.ColumnDefinitions.Add(new ColumnDefinition()); header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var brand = new TextBlock { Text = "BLUE SPECTRUM   /   SH-E70 FL", Foreground = new SolidColorBrush(Color.FromRgb(144, 144, 144)), FontFamily = new FontFamily("Arial"), FontSize = 10, Margin = new Thickness(9, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var brand = new TextBlock { Text = "BLUE SPECTRUM   /   SH-8057 FL", Foreground = new SolidColorBrush(Color.FromRgb(144, 144, 144)), FontFamily = new FontFamily("Arial"), FontSize = 10, Margin = new Thickness(9, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         header.Children.Add(brand);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 4, 2) };
         Grid.SetColumn(buttons, 1); header.Children.Add(buttons);

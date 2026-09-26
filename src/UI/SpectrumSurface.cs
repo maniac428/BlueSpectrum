@@ -10,8 +10,9 @@ namespace BlueSpectrum.UI;
 
 public sealed class SpectrumSurface : Grid
 {
-    private const int Steps = 13;
-    private const double PanelWidth = 354, PanelHeight = 146, PlotTop = 19, PlotHeight = 100;
+    private const int Steps = 26;
+    private const double PanelWidth = 354, PanelHeight = 208, PanelGap = 200, PlotTop = 19, PlotHeight = 100;
+    private const double SegmentHeight = 2.25;
     private static readonly string[] Frequencies = ["63Hz", "160Hz", "400Hz", "1kHz", "2.5kHz", "6.3kHz", "16kHz", "FULL RANGE"];
     private readonly double[][] levels = [new double[8], new double[8]];
     private readonly double[][] peaks = [new double[8], new double[8]];
@@ -20,9 +21,10 @@ public sealed class SpectrumSurface : Grid
     private readonly Typeface lettering = new("Arial");
     private DrawingGroup? face;
     private readonly DrawingGroup[,] activeSegments = new DrawingGroup[8, Steps];
-    private Brush lit = Brushes.LightBlue, halo = Brushes.Blue, outerHalo = Brushes.Blue;
-    private static readonly Brush Inactive = Brush("#061119"), Printed = Brush("#909DA5"), Dormant = Brush("#16212A"), ScaleInk = Brush("#A0CFE8");
+    private Brush lit = Brushes.LightBlue, hotCore = Brushes.White, halo = Brushes.Blue, outerHalo = Brushes.Blue;
+    private static readonly Brush Inactive = Brush("#02080D"), MarkerHalo = ColorBrush(70, 35, 125, 245), MarkerCore = ColorBrush(238, 155, 232, 255), Printed = Brush("#909DA5"), Dormant = Brush("#52636B"), ScaleInk = Brush("#A0CFE8");
     private static readonly Brush RedCore = Brush("#D7645C"), RedHalo = Brush("#28100F");
+    private static readonly Brush SliderRail = Brush("#22272A"), SliderTick = Brush("#4B5052"), SliderKnob = Brush("#73797B");
     private double lastBrightness = -1, lastGlow = -1;
     private GpuSpectrumHost? gpuHost;
     private byte[]? backgroundPixels;
@@ -80,14 +82,13 @@ public sealed class SpectrumSurface : Grid
         if (gpuHost?.Renderer != null && gpuFailure == null) return;
         if (ActualWidth < 100 || ActualHeight < 50) return;
         EnsureDrawings();
-        const double gap = 8;
-        double scale = Math.Min((ActualWidth - 6) / (PanelWidth * 2 + gap), (ActualHeight - 4) / PanelHeight);
+        double scale = Math.Min((ActualWidth - 6) / (PanelWidth * 2 + PanelGap), (ActualHeight - 4) / PanelHeight);
         if (scale <= 0) return;
-        double x = (ActualWidth - (PanelWidth * 2 + gap) * scale) / 2;
+        double x = (ActualWidth - (PanelWidth * 2 + PanelGap) * scale) / 2;
         double y = (ActualHeight - PanelHeight * scale) / 2;
         for (int channel = 0; channel < 2; channel++)
         {
-            dc.PushTransform(new TranslateTransform(x + channel * (PanelWidth + gap) * scale, y));
+            dc.PushTransform(new TranslateTransform(x + channel * (PanelWidth + PanelGap) * scale, y));
             dc.PushTransform(new ScaleTransform(scale, scale));
             dc.DrawDrawing(face);
             for (int band = 0; band < 8; band++)
@@ -100,9 +101,10 @@ public sealed class SpectrumSurface : Grid
                     dc.PushOpacity(.65); dc.DrawDrawing(activeSegments[band, peak - 1]); dc.Pop();
                 }
             }
-            Text(dc, channel == 0 ? "LEFT" : "RIGHT", 8, 3, 8.2, Printed);
+            Text(dc, channel == 0 ? "left channel" : "right channel", 177, 3, 8.2, Printed, center: true);
             dc.Pop(); dc.Pop();
         }
+        DrawCenterCaption(dc, x, y, scale);
     }
 
     internal void ApplyGpuSelection()
@@ -161,9 +163,8 @@ public sealed class SpectrumSurface : Grid
         var dpi = VisualTreeHelper.GetDpi(this);
         int width = Math.Max(1, (int)Math.Round(ActualWidth * dpi.DpiScaleX));
         int height = Math.Max(1, (int)Math.Round(ActualHeight * dpi.DpiScaleY));
-        const double gap = 8;
-        double scale = Math.Min((ActualWidth - 6) / (PanelWidth * 2 + gap), (ActualHeight - 4) / PanelHeight);
-        double x = (ActualWidth - (PanelWidth * 2 + gap) * scale) / 2;
+        double scale = Math.Min((ActualWidth - 6) / (PanelWidth * 2 + PanelGap), (ActualHeight - 4) / PanelHeight);
+        double x = (ActualWidth - (PanelWidth * 2 + PanelGap) * scale) / 2;
         double y = (ActualHeight - PanelHeight * scale) / 2;
         if (backgroundPixels == null || backgroundWidth != width || backgroundHeight != height || !ReferenceEquals(backgroundFace, face))
         {
@@ -175,12 +176,13 @@ public sealed class SpectrumSurface : Grid
                 dc.PushTransform(new ScaleTransform(dpi.DpiScaleX, dpi.DpiScaleY));
                 for (int channel = 0; channel < 2; channel++)
                 {
-                    dc.PushTransform(new TranslateTransform(x + channel * (PanelWidth + gap) * scale, y));
+                    dc.PushTransform(new TranslateTransform(x + channel * (PanelWidth + PanelGap) * scale, y));
                     dc.PushTransform(new ScaleTransform(scale, scale));
                     dc.DrawDrawing(face);
-                    Text(dc, channel == 0 ? "LEFT" : "RIGHT", 8, 3, 8.2, Printed);
+                    Text(dc, channel == 0 ? "left channel" : "right channel", 177, 3, 8.2, Printed, center: true);
                     dc.Pop(); dc.Pop();
                 }
+                DrawCenterCaption(dc, x, y, scale);
                 dc.Pop();
             }
             var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
@@ -195,22 +197,22 @@ public sealed class SpectrumSurface : Grid
         {
             int count = Math.Clamp((int)Math.Ceiling(levels[channel][band] * Steps - .025), 0, Steps);
             int peak = Math.Clamp((int)Math.Ceiling(peaks[channel][band] * Steps - .025), 0, Steps);
-            void AddPair(Brush brush, double bx, double by, double bw, double thickness, double opacity)
+            void AddCell(Brush brush, double bx, double by, double bw, double cellHeight, double opacity)
             {
                 var color = ((SolidColorBrush)brush).Color;
                 uint argb = ((uint)Math.Round(color.A * opacity) << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
-                float rx = (float)((x + (channel * (PanelWidth + gap) + bx) * scale) * dpi.DpiScaleX);
+                float rx = (float)((x + (channel * (PanelWidth + PanelGap) + bx) * scale) * dpi.DpiScaleX);
                 float ry = (float)((y + by * scale) * dpi.DpiScaleY);
-                float rw = (float)(bw * scale * dpi.DpiScaleX), rh = (float)(thickness * scale * dpi.DpiScaleY);
+                float rw = (float)(bw * scale * dpi.DpiScaleX), rh = (float)(cellHeight * scale * dpi.DpiScaleY);
                 gpuRectangles.Add(new(rx, ry, rw, rh, argb));
-                gpuRectangles.Add(new(rx, ry + (float)(3 * scale * dpi.DpiScaleY), rw, rh, argb));
             }
             void AddSegment(int row, double opacity)
             {
                 double bx = BandX(band), bw = BandWidth(band), by = RowY(row);
-                AddPair(outerHalo, bx - 1, by - .6, bw + 2, 2.2, opacity);
-                AddPair(halo, bx - .4, by - .25, bw + .8, 1.55, opacity);
-                AddPair(lit, bx, by, bw, 1.05, opacity);
+                AddCell(outerHalo, bx - 2.8, by - 1.5, bw + 5.6, SegmentHeight + 3, opacity);
+                AddCell(halo, bx - 1.2, by - .6, bw + 2.4, SegmentHeight + 1.2, opacity);
+                AddCell(lit, bx, by, bw, SegmentHeight, opacity);
+                AddCell(hotCore, bx + .8, by + .48, bw - 1.6, 1.25, opacity);
             }
             for (int row = 0; row < count; row++) AddSegment(row, 1);
             if (Settings.PeakHold && peak > count) AddSegment(peak - 1, .65);
@@ -222,27 +224,29 @@ public sealed class SpectrumSurface : Grid
     {
         if (face != null && Settings.Brightness == lastBrightness && Settings.Glow == lastGlow) return;
         lastBrightness = Settings.Brightness; lastGlow = Settings.Glow;
-        lit = ColorBrush((byte)(255 * lastBrightness), 168, 226, 255);
-        halo = ColorBrush((byte)(70 * lastGlow * lastBrightness), 78, 174, 251);
-        outerHalo = ColorBrush((byte)(14 * lastGlow * lastBrightness), 44, 119, 224);
+        lit = ColorBrush((byte)(230 * lastBrightness), 70, 180, 252);
+        hotCore = ColorBrush((byte)(225 * lastBrightness), 190, 239, 255);
+        halo = ColorBrush((byte)(130 * lastGlow * lastBrightness), 48, 152, 255);
+        outerHalo = ColorBrush((byte)(42 * lastGlow * lastBrightness), 28, 99, 230);
         face = new DrawingGroup();
         using (var dc = face.Open())
         {
             // The panel merges into the window: no outline, separator, glass layer or reflection.
-            dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, PanelWidth, 145));
+            dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, PanelWidth, PanelHeight));
             for (int band = 0; band < 8; band++)
             {
                 double bx = BandX(band), bw = BandWidth(band);
                 for (int row = 0; row < Steps; row++)
                 {
                     double by = RowY(row);
-                    DrawPair(dc, Inactive, bx, by, bw, .65);
+                    dc.DrawRectangle(Inactive, null, new Rect(bx, by, bw, SegmentHeight));
                     var segment = new DrawingGroup();
                     using (var s = segment.Open())
                     {
-                        DrawPair(s, outerHalo, bx - 1, by - .6, bw + 2, 2.2);
-                        DrawPair(s, halo, bx - .4, by - .25, bw + .8, 1.55);
-                        DrawPair(s, lit, bx, by, bw, 1.05);
+                        s.DrawRectangle(outerHalo, null, new Rect(bx - 2.8, by - 1.5, bw + 5.6, SegmentHeight + 3));
+                        s.DrawRectangle(halo, null, new Rect(bx - 1.2, by - .6, bw + 2.4, SegmentHeight + 1.2));
+                        s.DrawRectangle(lit, null, new Rect(bx, by, bw, SegmentHeight));
+                        s.DrawRectangle(hotCore, null, new Rect(bx + .8, by + .48, bw - 1.6, 1.25));
                     }
                     segment.Freeze(); activeSegments[band, row] = segment;
                 }
@@ -259,24 +263,52 @@ public sealed class SpectrumSurface : Grid
             for (int i = 0; i < 9; i++)
             {
                 double cy = PlotTop + 2.3 + i * (PlotHeight - 4.6) / 8;
-                foreach (double tx in new[] { 32.0, 314.0 })
+                foreach (double tx in new[] { 32.0, 320.0 })
                 {
                     dc.DrawRectangle(RedHalo, null, new Rect(tx - 1, cy - 1, 10, 3.2));
                     dc.DrawRectangle(RedCore, null, new Rect(tx, cy, 8, 1.2));
                 }
             }
-            Text(dc, "(dB)", 18, 132, 8.4, Printed, center: true);
-            Text(dc, "(dB)", 340, 132, 8.4, Printed, center: true);
+            // SH-8057 has five always-visible reference dots in vertical columns between the eight bars.
+            double[] markers = [42, 75.5, 107, 138.5, 170, 201.5, 233, 268, 309];
+            foreach (double mx in markers)
+            for (int i = 0; i < 5; i++)
+            {
+                double my = PlotTop + 2.3 + i * (PlotHeight - 4.6) / 4;
+                dc.DrawRectangle(MarkerHalo, null, new Rect(mx - 1.5, my - 1.4, 7, 4.6));
+                dc.DrawRectangle(MarkerCore, null, new Rect(mx, my, 4, 1.8));
+            }
+            Text(dc, "(dB)", 26, 1, 7.2, Printed, right: true);
+            Text(dc, "(dB)", 330, 1, 7.2, Printed);
+            Text(dc, "equalizer", 5, 135, 7.2, Printed);
+            Text(dc, "spectrum", 350, 135, 7.2, Printed, right: true);
+            for (int band = 0; band < 7; band++)
+            {
+                double cx = BandX(band) + BandWidth(band) / 2;
+                dc.DrawRectangle(SliderRail, null, new Rect(cx - 2.3, 153, 4.6, 44));
+                for (int tick = 0; tick < 7; tick++)
+                {
+                    double ty = 154 + tick * 7;
+                    dc.DrawRectangle(SliderTick, null, new Rect(cx - 9, ty, 5, .7));
+                    dc.DrawRectangle(SliderTick, null, new Rect(cx + 4, ty, 5, .7));
+                }
+                dc.DrawRectangle(SliderKnob, null, new Rect(cx - 5.5, 172, 11, 6));
+            }
+            Text(dc, "UP", 11, 154, 7.2, Printed);
+            Text(dc, "DOWN", 11, 189, 7.2, Printed);
         }
         face.Freeze();
     }
     private static double BandX(int band) => band == 7 ? 276 : 50 + band * 31.5;
     private static double BandWidth(int band) => band == 7 ? 27.5 : 19.5;
     private static double RowY(int row) => PlotTop + PlotHeight - (row + 1) * (PlotHeight / Steps) + 1.5;
-    private static void DrawPair(DrawingContext dc, Brush brush, double x, double y, double width, double thickness)
+    private void DrawCenterCaption(DrawingContext dc, double x, double y, double scale)
     {
-        dc.DrawRectangle(brush, null, new Rect(x, y, width, thickness));
-        dc.DrawRectangle(brush, null, new Rect(x, y + 3, width, thickness));
+        dc.PushTransform(new TranslateTransform(x + (PanelWidth + PanelGap / 2) * scale, y));
+        dc.PushTransform(new ScaleTransform(scale, scale));
+        Text(dc, "7-BAND", 0, 163, 9, Printed, center: true);
+        Text(dc, "GRAPHIC EQUALIZER", 0, 177, 8, Printed, center: true);
+        dc.Pop(); dc.Pop();
     }
     private void Text(DrawingContext dc, string text, double x, double y, double size, Brush brush, bool right = false, bool center = false)
     {

@@ -97,7 +97,7 @@ internal sealed class OptionsWindow : Window
         var top = new CheckBox { Content = "항상 다른 창 위에 표시", IsChecked = settings.AlwaysOnTop };
         var eco = new CheckBox { Content = "절전 모드 · 목표 30 FPS (기본 목표 60 FPS)", IsChecked = settings.Fps == 30 };
         body.Children.Add(peak); body.Children.Add(top); body.Children.Add(eco);
-        body.Children.Add(new TextBlock { Text = "표시 감도는 실제 소리 크기를 바꾸지 않습니다.\n7개 주파수 + FULL RANGE · 13단 이중 형광선.\n오른쪽 0~36은 상대 표시 레벨이며 원기기의 전압 기준과 다릅니다.\n왼쪽 ±12는 원기기의 EQ 눈금을 재현한 장식이며 실제 조절값이 아닙니다.\n모노는 양쪽에 동일하게, 다채널은 전면 좌우만 표시합니다.\nF11 전체 화면 · Ctrl+M 감상 모드 · Esc 복귀\nSH-E70 표시 구조를 바탕으로 여백과 상태 영역을 줄인 화면입니다.", Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 15, 0, 0), LineHeight = 19 });
+        body.Children.Add(new TextBlock { Text = "표시 감도는 실제 소리 크기를 바꾸지 않습니다.\n7개 주파수 + FULL RANGE · 촘촘한 청색 발광선 막대.\n오른쪽 0~36은 상대 표시 레벨이며 원기기의 전압 기준과 다릅니다.\n하단 7밴드 슬라이더와 왼쪽 ±12 눈금은 외형 재현용이며 소리를 조절하지 않습니다.\n모노는 양쪽에 동일하게, 다채널은 전면 좌우만 표시합니다.\nF11 전체 화면 · Ctrl+M 감상 모드 · Esc 복귀\nSH-8057의 두 표시창과 좌우 슬라이더 외형을 참고했습니다.", Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 15, 0, 0), LineHeight = 19 });
         save.Click += (_, _) =>
         {
             settings.DeviceId = devices.SelectedValue as string; if (string.IsNullOrEmpty(settings.DeviceId)) settings.DeviceId = null;
